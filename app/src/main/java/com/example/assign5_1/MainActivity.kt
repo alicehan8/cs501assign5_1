@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -95,7 +96,7 @@ fun MainScreen(viewModel: MyViewModel = MyViewModel(), modifier: Modifier = Modi
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My App") }
+                title = { Text("What's For Dinner?") }
             )
         },
         bottomBar = {
@@ -145,20 +146,36 @@ fun MainScreen(viewModel: MyViewModel = MyViewModel(), modifier: Modifier = Modi
             modifier = Modifier.padding(innerPadding) // Apply padding from the Scaffold.
         ) {
             // Define a composable for each screen in our navigation graph.
-            composable(Screen.Home.route) { HomeScreen(viewModel) }
+            composable(Screen.Home.route) { HomeScreen(viewModel, onRecipeClick = { recipe ->
+                navController.navigate(Screen.Details.route + "/${recipe.title}")
+            }) }
             composable(Screen.Add.route) { AddScreen(viewModel)}
             composable(Screen.Settings.route) { Text("Settings") }
+
+            composable("${Screen.Details.route}/{name}") { backStackEntry ->
+                val name = backStackEntry.arguments?.getString("name")
+                val recipe = name?.let { title ->
+                    viewModel.recipes.find { it.title == title }
+                }
+
+                if (recipe != null) {
+                    DetailScreen(recipe)
+                } else {
+                    Text("Recipe not found.")
+                }
+            }
+
         }
     }
 }
 
 @Composable
-fun HomeScreen(viewModel: MyViewModel) {
+fun HomeScreen(viewModel: MyViewModel, onRecipeClick: (Recipe) -> Unit = {}) {
     Column(modifier = Modifier.padding(16.dp)) {
         Text("Recipe List", fontSize = 20.sp)
         LazyColumn(modifier = Modifier.weight(1f)) {
             items(viewModel.recipes.size) { i ->
-                Text(viewModel.recipes[i].title)
+                Text(viewModel.recipes[i].title, Modifier.clickable{onRecipeClick(viewModel.recipes[i])})
             }
         }
     }
@@ -189,6 +206,15 @@ fun AddScreen(viewModel: MyViewModel) {
             Text("Add")
         }
 
+    }
+}
+
+@Composable
+fun DetailScreen(recipe: Recipe){
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text(recipe.title, fontSize = 20.sp)
+        Text(recipe.ingredients)
+        Text(recipe.steps)
     }
 }
 
